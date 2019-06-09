@@ -65,10 +65,18 @@ class Game:
         self.player1 = Player(self.bag.draw(7))
         self.player2 = Player(self.bag.draw(7))
         self.turn = None
-        self.last_word = (None, 0)
-
+        self.end_game = 'going'
     
     #TODO: needs some way of determining the end of the game
+    #TODO: needs some way to pass
+
+    def dump(self):
+    	self.turn.dump()
+    	if bag.empty:
+    		if self.end_game == 'pass':
+    			self.end_game = 'end'
+    		else:
+    			self.end_game = 'pass'
 
 
     def pick_order(self):
@@ -91,23 +99,38 @@ class Game:
     def challenge(self):
         return False
 
-    def turn(self, word, start, end):
-        self.turn.place_word(self.board, word, start, end)
-        if self.challenge():
-            self.turn.retract_word(self.board)
-            return self.turn()
-        self.turn.draw(self.bag)
+    def turn(self, word, start, end, dump=False):
+    	#returns the winner at the end of the game
+    	if self.end_game == 'end':
+    		self.player1.subtract_unused()
+    		self.player2.subtract_unused()
+    		if self.player1.score>self.player2.score:
+    			return self.player1
+    		elif self.player1.score<self.player2.score:
+    			return self.player2
+    		else:
+    			return 'tie'
 
-        if self.turn == self.player1:
-            self.turn = self.player2
-        else:
-            self.turn = self.player1
+    	#handles passing
+    	if dump:
+    		self.turn.dump(word, self.bag)
+    	#handles word placement
+    	else:
+	        self.turn.place_word(self.board, word, start, end)
+	        if self.challenge():
+	            self.turn.retract_word(self.board)
+	            return self.turn()
+	        self.turn.draw(self.bag)
+
+	        if self.turn == self.player1:
+	            self.turn = self.player2
+	        else:
+	            self.turn = self.player1
 
 
 class Bag:
     def __init__(self, D=None):
         self.empty = False
-        self.letters_points = Constants.LETTER_POINTS.copy.deepcopy()
         if D is not None:
             self.letters = D
         else:
@@ -285,11 +308,21 @@ class Player:
         self.last_score = None
         self.last_coords = None
 
+    def dump(self, letters, bag):
+    	if bag.empty:
+    		return
+
+    	for let in letters:
+    		self.tray.remove(let)
+    	self.draw()
 
     def draw(self, bag):
         to_draw = 7-len(self.tray)
         self.tray.extend(bag.draw(to_draw))
 
+    def subtract_unused(self):
+    	for let in self.tray:
+    		self.score -= Constants.LETTER_POINTS[let]
 
 
 class Board:
