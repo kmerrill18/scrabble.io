@@ -146,13 +146,13 @@ class Bag:
             if len(self.letters) == 0:
                 self.empty = True
                 return result
-            ind = random.randint(0, len(self.letters))
+            ind = random.randint(0, len(self.letters)-1)
             result.append(self.letters.pop(ind))
         return result
 
     def pick_order_letter(self):
-        ind1 = random.randint(0, len(self.letters))
-        ind2 = random.randint(0, len(self.letters))
+        ind1 = random.randint(0, len(self.letters)-1)
+        ind2 = random.randint(0, len(self.letters)-1)
         if ind1 == ind2:
             print('recursing')
             return pick_order_letter()
@@ -217,12 +217,15 @@ class Player:
 
         #removes used letters from tray
         for letter in word:
-            tray.remove(letter)
+            self.tray.remove(letter)
 
         #sets up for challenge
         self.last_word = word
         self.last_coords = (start, end)
         self.last_score = points
+
+        #adds to player score
+        self.score += points
 
     def calc_sideword(self, board, coord, direction, mod, let_point):
         #assumes that one sideword moves in only one direction
@@ -332,9 +335,9 @@ class Board:
     def place_letter(self, letter, coord):
         x = coord[0]
         y = coord[1]
-        board_val = board[x][y]
+        board_val = self.board[x][y]
 
-        if check_spot(coord):
+        if self.check_spot(coord):
             self.board[x][y] = letter
             return board_val
         else:
@@ -343,7 +346,7 @@ class Board:
     def check_spot(self, coord):
         x = coord[0]
         y = coord[1]
-        board_val = board[x][y]
+        board_val = self.board[x][y]
 
         if board_val == ' ' or board_val == '2L' or board_val == '3L' or board_val == '2W' or \
                 board_val == '3W' or board_val == 'STAR':
@@ -355,7 +358,7 @@ class Board:
         result = set()
 
         for spot in to_check:
-            if spot not in omit and not check_spot(spot):
+            if spot not in omit and not self.check_spot(spot):
                 result.add(spot)
 
         return result
