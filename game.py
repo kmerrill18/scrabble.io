@@ -262,7 +262,20 @@ class Player:
     #TODO: code to remove the last word placed from the board
     def retract_word(self, board):
         #code to take the last action off the board
-        
+        start = self.last_coord[0]
+        end = self.last_coord[1]
+
+        if start[0] == end[0]:
+        	coord = start
+        	while coord[1] <= end[1]:
+        		board.board[coord[0]][coord[1]] = Constants.BOARD[coord[0]][coord[1]]
+        		coord = (coord[0], coord[1]+1)
+        else:
+        	coord = start
+        	while coord[0] <= end[0]:
+        		board.board[coord[0]][coord[1]] = Constants.BOARD[coord[0]][coord[1]]
+        		coord = (coord[0]+1, coord[1])
+
         #this code returns player states
         self.score -= self.last_score
         for letter in self.last_word:
