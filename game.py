@@ -11,7 +11,7 @@ class Constants:
                'B', 'C', 'C', 'M', 'M', 'P', 'P', 'F', 'F', 'H', 'H', 'V', 'V', 'W', 'W', 'Y',
                'Y', 'K', 'J', 'X', 'Q', 'Z']
 
-    def make_letters_points(self):
+    def make_letters_points():
         D = dict()
         D['blank'] = 0
         D['A'] = 1
@@ -64,7 +64,7 @@ class Game:
         self.bag = Bag()
         self.player1 = Player(self.bag.draw(7))
         self.player2 = Player(self.bag.draw(7))
-        self.turn = None
+        self.active = None
         self.end_game = 'going'
     
     #TODO: needs some way of determining the end of the game
@@ -87,13 +87,13 @@ class Game:
                 blank = False
         
         if let1>let2:
-            self.turn = self.player2
+            self.active = self.player2
             return (self.player2, let1, let2)
         elif let1<let2:
-            self.turn = self.player1
+            self.active = self.player1
             return (self.player1, let1, let2)
         else:
-            return pick_order()
+            return self.pick_order()
 
     #TODO: for challanging a word placement. Returns true or false
     def challenge(self):
@@ -113,19 +113,19 @@ class Game:
 
     	#handles passing
     	if dump:
-    		self.turn.dump(word, self.bag)
+    		self.active.dump(word, self.bag)
     	#handles word placement
     	else:
-	        self.turn.place_word(self.board, word, start, end)
+	        self.active.place_word(self.board, word, start, end)
 	        if self.challenge():
-	            self.turn.retract_word(self.board)
+	            self.active.retract_word(self.board)
 	            return self.turn()
-	        self.turn.draw(self.bag)
+	        self.active.draw(self.bag)
 
-	        if self.turn == self.player1:
-	            self.turn = self.player2
+	        if self.active == self.player1:
+	            self.active = self.player2
 	        else:
-	            self.turn = self.player1
+	            self.active = self.player1
 
 
 class Bag:
@@ -327,7 +327,7 @@ class Player:
 
 class Board:
     def __init__(self):
-        self.board = Constants.BOARD.copy.deepcopy()
+        self.board = copy.deepcopy(Constants.BOARD)
 
     def place_letter(self, letter, coord):
         x = coord[0]
@@ -359,3 +359,24 @@ class Board:
                 result.add(spot)
 
         return result
+
+if __name__ == '__main__':
+	game = Game()
+	print(game.pick_order())
+	print(vars(game))
+	print()
+	print(vars(game.player1))
+	print()
+	print(vars(game.player2))
+	print()
+	# print(vars(game.bag))
+	# print()
+	word = game.active.tray[0]+game.active.tray[1]
+	game.turn(word, (7,7), (7,8))
+	print(vars(game.board))
+	print()
+	print(vars(game.player1))
+	print()
+	print(vars(game.player2))
+	print()
+	print(vars(game))
