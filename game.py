@@ -95,7 +95,7 @@ class Game:
         self.turn.place_word(self.board, word, start, end)
         if self.challenge():
             self.turn.retract_word(self.board)
-            return self.turn
+            return self.turn()
         self.turn.draw(self.bag)
 
         if self.turn == self.player1:
