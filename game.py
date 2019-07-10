@@ -34,6 +34,8 @@ class Constants:
         D['R'] = 1
         D['S'] = 1
         D['T'] = 1
+        D['U'] = 1
+        D['V'] = 4
         D['W'] = 4
         D['X'] = 8
         D['Y'] = 4
@@ -364,6 +366,7 @@ class Board:
         return result
 
 if __name__ == '__main__':
+	#CHECK DIRECTION
 	game = Game()
 	print(game.pick_order())
 	print(vars(game))
@@ -374,8 +377,13 @@ if __name__ == '__main__':
 	print()
 	# print(vars(game.bag))
 	# print()
-	word = game.active.tray[0]+game.active.tray[1]
-	game.turn(word, (7,7), (7,8))
+	word_L = game.active.tray[0:5]
+	print(word_L)
+	word = ""
+	for char in word_L:
+		word = word+char
+	print(word)
+	game.turn(word, (3,7), (7,7))
 	print(vars(game.board))
 	print()
 	print(vars(game.player1))
