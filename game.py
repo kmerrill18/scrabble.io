@@ -60,6 +60,45 @@ class Constants:
              [' ', '2W', ' ', ' ', ' ', '3L', ' ', ' ', ' ', '3L', ' ', ' ', ' ', '2W', ' '],
              ['3W', ' ', ' ', '2L', ' ', ' ', ' ', '3W', ' ', ' ', ' ', '2L', ' ', ' ', '3W']]
 
+
+#helper methods for dealing with coordinates
+def get_direction(coord1, coord2):
+    if coord1[0] == coord2[0]:
+        return 'y'
+    else:
+        return 'x'
+
+def opposite_direction(direction):
+    if direction == 'x':
+        return 'y'
+    else:
+        return 'x'
+
+def incr_coord(coord, direction):
+        if direction == 'x':
+            return (coord[0]+1, coord[1])
+        else:
+            return (coord[0], coord[1]+1)
+
+def decr_coord(coord, direction):
+    if direction == 'x':
+        return (coord[0]-1, coord[1])
+    else:
+        return (coord[0], coord[1]-1)
+
+def compare_coords(coord1, coord2):
+        if coord1[1]==coord2[1]:
+            if coord1[0]>=coord2[0]:
+                return coord1
+            else:
+                return coord2
+        else:
+            if coord1[1]>=coord2[1]:
+                return coord1
+            else:
+                return coord2
+
+
 class Game:
     def __init__(self):
         self.board = Board()
@@ -90,7 +129,7 @@ class Game:
                 self.bag.letters.append(let)
             self.turn.draw(self.bag)
         else:
-            self.end++
+            self.end+=1
 
         if self.turn == self.player1:
             self.turn = self.player2
@@ -114,17 +153,58 @@ class Game:
         else:
             return self.pick_order()
 
-    #returns whether or not the challenge was successful
-    #TODO: for challanging a word placement. Returns true or false
-    def challenge(self):
-        return False
+    #takes in a word dictionary and returns a list of the letters, the first coordinate, and the last coordinate
+    #output goes in to player method for placing the word
+    def find_start_and_end(self, word):
+        start = None
+        end = None
+        word_list = []
+        for let, coord_set in word.items():
+            for coord in coord_set:
+                word_list.append(let)
+                if start is None:
+                    start = coord
+                    end = coord
+                elif compare_coords(start, coord) == start:
+                    start = coord
+                elif compare_coords(end, coord) == coord:
+                    end = coord
+
+        direction = get_direction(start, end)
+        extend = True
+        temp_start = decr_coord(start, direction)
+        while extend:
+            if not self.board.check_spot(temp_start):
+                start = temp_start
+                temp_start = decr_coord(start, direction)
+            else:
+                extend = False
+
+        extend = True
+        temp_end = incr_coord(end, direction)
+        while extend:
+            if not self.board.check_spot(temp_end):
+                end = temp_end
+                temp_end = incr_coord(end, direction)
+            else:
+                extend = False
+
+        return start, end, word_list
 
     #executes one turn that isn't a pass
-    def play(self, word, start, end):
-        self.turn.place_word(self.board, word, start, end)
-        if self.challenge():
+    #word is dictionary mapping letters to coordinates
+    def play(self, word):
+        start, end, word_list = self.find_start_and_end(word)
+        self.turn.place_word(self.board, word_list, start, end)       
+
+    #takes the last word off the board if the challenge is successful
+    #draws for the player that just played
+    #switches the turn since time for challenging has passed
+    def challenge(self, valid):
+        if valid:
             self.turn.retract_word(self.board)
             return self.turn
+
         self.turn.draw(self.bag)
 
         if self.turn == self.player1:
@@ -176,21 +256,15 @@ class Player:
         self.score = 0
 
         self.last_word = None
-        self.last_coords = None
+        #self.last_coords = None
         self.last_score = None
-
-    #helper function for below - increments the coordinate one in the given direction
-    def incr_coord(self, coord, direction):
-        if direction == 'x':
-            return (coord[0]+1, coord[1])
-        else:
-            return (coord[0], coord[1]+1)
 
     #puts a word with specified start and end on the board
     #word is the letters from the player's tray - function will account for letters already on the board
     #removes used letters from tray
     #assumes that word is selected from the tray
     #DOESN'T DRAW AT THE END - NEEDS GAME TO CALL THIS COMMAND ONCE CHALLENGE IS SETTLED
+
     def place_word(self, board, word, start, end):
         points = 0
         side_points = 0
@@ -222,7 +296,7 @@ class Player:
             modifiers.update(output[1])
             board_val = output[2]
 
-            if board_val != 'taken' and len(board.check_adjacent(coord, {last_coord, self.incr_coord(coord, direction)}))>0:
+            if board_val != 'taken' and len(board.check_adjacent(coord, {last_coord, incr_coord(coord, direction)}))>0:
                 side_val = self.calc_sideword(board, coord, direction, board_val, output[0])
                 side_points += side_val
 
@@ -233,7 +307,7 @@ class Player:
                     self.last_word[letter] = {coord}
             
             last_coord = coord
-            coord = self.incr_coord(coord, direction)
+            coord = incr_coord(coord, direction)
 
         #calculates total score
         mult = 1
@@ -334,7 +408,6 @@ class Player:
         return points, modifiers, board_val
 
     #undoes the last action in the case of a successful challenge
-    #TODO: code to remove the last word placed from the board
     def retract_word(self, board):
         #code to take the last action off the board
         for let, coord_set in self.last_word.items():
@@ -404,13 +477,24 @@ class Board:
 #some code for testing different features
 #ctrl+shift+/ to block comment
 if __name__ == '__main__':
+    print("printout for testing")
+
     game = Game()
     game.pick_order()
     print("bag len: " + str(len(game.bag.letters)))
 
     word = game.turn.tray[0:5]
     print(word)
-    game.play(word, (7,7), (7,11))
+    word_dict = dict()
+    coord = (7,7)
+    for let in word:
+        if let in word_dict:
+            word_dict[let].add(coord)
+        else:
+            word_dict[let] = {coord}
+        coord = (coord[0], coord[1]+1)
+    game.play(word_dict)
+    game.challenge(False)
     print(game.player1.score)
     print(game.player2.score)
     print("bag len: " + str(len(game.bag.letters)))
@@ -418,7 +502,16 @@ if __name__ == '__main__':
     
     word = game.turn.tray[0:2]
     print(word)
-    game.play(word, (8,7), (8,8))
+    word_dict = dict()
+    coord = (8,7)
+    for let in word:
+        if let in word_dict:
+            word_dict[let].add(coord)
+        else:
+            word_dict[let] = {coord}
+        coord = (coord[0], coord[1]+1)
+    game.play(word_dict)
+    game.challenge(False)
     print(game.player1.score)
     print(game.player2.score)
     print("bag len: " + str(len(game.bag.letters)))
@@ -426,7 +519,16 @@ if __name__ == '__main__':
     
     word = game.turn.tray[0:4]
     print(word)
-    game.play(word, (3,11), (7,11))
+    word_dict = dict()
+    coord = (3,11)
+    for let in word:
+        if let in word_dict:
+            word_dict[let].add(coord)
+        else:
+            word_dict[let] = {coord}
+        coord = (coord[0]+1, coord[1])
+    game.play(word_dict)
+    game.challenge(False)
     print(game.player1.score)
     print(game.player2.score)
     print("bag len: " + str(len(game.bag.letters)))
@@ -434,11 +536,84 @@ if __name__ == '__main__':
 
     word = game.turn.tray[0:2]
     print(word)
-    game.play(word, (5,10), (5,12))
+    word_dict = {word[0]:{(5,10)}, word[1]:{(5,12)}}
+    game.play(word_dict)
+    print(game.board.board)
+    game.challenge(True)
+
     print(game.player1.score)
     print(game.player2.score)
+    print(game.player1.tray)
+    print(game.player2.tray)
     print("bag len: " + str(len(game.bag.letters)))
     print()
 
     print(game.board.board)
-    
+
+##UNUSED CODE
+# def place_word(self, board, word):
+    #     points = 0
+    #     side_points = 0
+    #     direction = 'x'
+    #     modifiers = set()
+    #     self.last_word = deepcopy(word)
+
+    #     used_spaces = set()
+
+    #     coord1 = None
+    #     coord2 = None
+
+    #     for let, coord_set in word.items():
+    #         for coord in coord_set:
+    #             if coord1 is not None and coord2 is not None:
+    #                 break
+    #             if coord1 is None:
+    #                 coord1 = coord
+    #             elif coord2 is None:
+    #                 coord2 = coord
+    #         if coord1 is not None and coord2 is not None:
+    #             if coord1[0] == coord2[0]:
+    #                 direction = 'y'
+    #                 break
+
+    #     word_len = 0
+
+    #     for letter, coord_set in word.items():
+    #         for coord in coord_set:
+    #             word_len += 1
+    #             self.tray.remove(letter)
+    #             used_coords.add(coord)
+                
+    #             output = self.get_let_points(board, letter, coord)
+    #             points += output[0]
+    #             modifiers.update(output[1])
+    #             board_val = output[2]
+
+    #             if board_val != 'taken' and len(board.check_adjacent(coord, {self.decr_coord(coord, direction), self.incr_coord(coord, direction)}))>0:
+    #                 side_val = self.calc_sideword(board, coord, direction, board_val, output[0])
+    #                 side_points += side_val
+
+    #             #NEEDS SOMETHING TO CALCULATE THE LETTERS IN THE WORD THAT ARE NOT DIRECTLY PLACED
+    #             #AND ARE NOT SIDEWORDS
+
+    #     #calculates total score
+    #     mult = 1
+    #     for mod in modifiers:
+    #         if mod == 'STAR':
+    #             mult = mult*2
+    #         else:
+    #             mult = mult*int(mod[0])
+
+    #     #adds modified points from original word
+    #     points = points*mult 
+    #     #adds points from sidewords
+    #     points+= side_points
+    #     #adds bonus points for using all letters
+    #     if word_len == 7:
+    #         points+=50
+
+    #     #adds points
+    #     self.score += points
+
+    #     #sets up for challenge
+    #     self.last_score = points
